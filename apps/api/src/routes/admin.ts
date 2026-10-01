@@ -13,6 +13,7 @@ import { listMonitorEvents, listMonitorPosts, relinkPost, resolveMonitorPost, re
 import { releaseReceipt, requeueFailedArticles, resolveDelivery, runsOverview } from "@aihot/backend/admin/runs";
 import { listBudgets, listTargets, replaceContactQr, setTargetEnabled, updateBudget } from "@aihot/backend/admin/settings";
 import { createSource, fetchNow, listSources, previewSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
+import { createStudioTask, editStudioDraft, exportStudioPackage, listStudioTasks, queueGeneration, reviewStudioDraft, studioTaskDetail, updateStudioTask } from "@aihot/backend/admin/studio";
 import { sql } from "@aihot/backend/db";
 import { loadContact } from "@aihot/backend/site/contact";
 import { sendProblem } from "../http/respond.ts";
@@ -89,6 +90,20 @@ export function registerAdmin(app: FastifyInstance) {
     return reply.code(204).send();
   }));
 
+
+  // Studio workbench (PRD §10): content tasks, drafts, review and export
+  app.get("/api/admin/studio/tasks", adminHandler(async (req) => listStudioTasks({ status: q(req).status, q: q(req).q })));
+  app.post("/api/admin/studio/tasks", adminHandler(async (req, _reply, admin) => createStudioTask(body(req), actorOf(admin))));
+  app.get("/api/admin/studio/tasks/:id", adminHandler(async (req, reply) => orNotFound(req, reply, await studioTaskDetail(param(req, "id")))));
+  app.patch("/api/admin/studio/tasks/:id", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await updateStudioTask(param(req, "id"), body(req), actorOf(admin)))));
+  app.post("/api/admin/studio/tasks/:id/generate", adminHandler(async (req, reply, admin) => {
+    const b = body<{ platform: string }>(req);
+    const requestId = String(req.headers["idempotency-key"] ?? "");
+    return orNotFound(req, reply, await queueGeneration(param(req, "id"), b.platform, requestId, actorOf(admin)));
+  }));
+  app.patch("/api/admin/studio/drafts/:id", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await editStudioDraft(param(req, "id"), body(req), actorOf(admin)))));
+  app.post("/api/admin/studio/drafts/:id/review", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await reviewStudioDraft(param(req, "id"), body(req), actorOf(admin)))));
+  app.post("/api/admin/studio/tasks/:id/export", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await exportStudioPackage(param(req, "id"), body(req), actorOf(admin)))));
   // Runs (F20)
   app.get("/api/admin/runs", adminHandler(async () => runsOverview()));
   app.post("/api/admin/receipts/:id/release", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await releaseReceipt(Number(param(req, "id")), body(req) as never, actorOf(admin)))));
