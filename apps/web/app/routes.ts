@@ -43,6 +43,7 @@ export default [
     route("admin/content", "routes/admin/content.tsx"),
     route("admin/content/:id", "routes/admin/content-item.tsx"),
     route("admin/studio", "routes/admin/studio.tsx"),
+    route("admin/studio/:id", "routes/admin/studio-item.tsx"),
     route("admin/sources", "routes/admin/sources.tsx"),
     route("admin/sources/new", "routes/admin/source-new.tsx"),
     route("admin/sources/:id", "routes/admin/source.tsx"),
